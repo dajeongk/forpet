@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forpet.mapper.OrderMapper">
+
+	<!-- 장바구니에서 주문하기시 주문내역 목록 -->
+	<select id="cartOrderList" parameterType="string" resultType="com.forpet.domain.CartOrderInfo">
+	
+		SELECT 
+			C.PDT_NUMBER, C.MEM_ID, C.PDT_BUY_AMOUNT,
+	        P.PDT_NAME, P.PDT_PRICE, P.PDT_DISCOUNT, P.PDT_COMPANY, P.PDT_IMG_FOLDER, P.PDT_IMG
+		FROM 
+			CART_TBL C INNER JOIN PRODUCT_TBL P
+		ON 
+			C.PDT_NUMBER = P.PDT_NUMBER
+		WHERE 
+			C.MEM_ID = #{mem_id}
+	
+	</select>
+	
+	<!-- 직접 구매하기 주문목록 -->
+	<select id="directOrderList" resultType="com.forpet.domain.CartOrderInfo">
+	
+		SELECT 
+			PDT_NUMBER, 
+			PDT_NAME, 
+			PDT_PRICE, 
+			#{odr_amount} as PDT_BUY_AMOUNT, 
+			PDT_DISCOUNT, 
+			PDT_COMPANY, 
+			PDT_IMG_FOLDER, 
+			PDT_IMG 
+		FROM 
+			PRODUCT_TBL			
+		WHERE 
+			PDT_NUMBER = #{pdt_number}
+	
+	</select>
+	
+	<!-- 주문 정보 저장 -->
+	<insert id="orderSave" parameterType="com.forpet.domain.OrderVO">
+		
+		<selectKey keyProperty="odr_number" order="BEFORE" resultType="long">
+			SELECT SEQ_ODR_NUMBER.NEXTVAL FROM DUAL
+		</selectKey>
+		
+		INSERT INTO ORDER_TBL
+			(
+			  ODR_NUMBER, 
+			  MEM_ID, 
+			  ODR_NAME, 
+			  ODR_PHONE, 
+			  ODR_POSTCODE, 
+			  ODR_ADDR, 
+			  ODR_ADDR_D, 
+			  ODR_TOTAL_PRICE, 
+			  ODR_MESSAGE, 
+			  PAY_STATUS
+			) 
+		VALUES
+			(
+			  #{odr_number}, 
+			  #{mem_id}, 
+			  #{odr_name}, 
+			  #{odr_phone}, 
+			  #{odr_postcode}, 
+			  #{odr_addr}, 
+			  #{odr_addr_d}, 
+			  #{odr_total_price}, 
+			  #{odr_message}, 
+			  #{pay_status}
+			)
+	
+	</insert>
+
+	<!-- 주문상세 정보 저장 -->
+	<insert id="orderDetailSave">
+	
+		INSERT INTO
+			ORDER_DETAIL_TBL(ODR_NUMBER, PDT_NUMBER, ODR_AMOUNT, ODR_PRICE)
+		SELECT 
+			#{odr_number}, C.PDT_NUMBER, C.PDT_BUY_AMOUNT, C.PDT_BUY_AMOUNT * P.PDT_PRICE
+		FROM 
+			CART_TBL C INNER JOIN PRODUCT_TBL P
+		ON 
+			C.PDT_NUMBER = P.PDT_NUMBER
+		WHERE 
+			MEM_ID = #{mem_id}
+	
+	</insert>
+	
+	<!-- 결제정보 저장 -->
+	<insert id="paymentSave" parameterType="com.forpet.domain.PaymentVO">
+	
+		INSERT INTO PAYMENT_TBL
+			( 
+			  PAY_CODE, 
+			  ODR_NUMBER, 
+			  PAY_METHOD, 
+			  PAY_DATE, 
+			  PAY_TOTAL_PRICE, 
+			  PAY_REST_PRICE
+			  <if test="pay_nobank_user != null and !pay_nobank_user.equals('')">
+			  , PAY_NOBANK_PRICE, 
+			  PAY_NOBANK_USER, 
+			  PAY_NOBANK 
+			  </if>
+			 )
+		VALUES
+			( 
+			  SEQ_PAY_CODE.NEXTVAL, 
+			  #{odr_number}, 
+			  #{pay_method}, 
+			  SYSDATE, 
+			  #{pay_total_price}, 
+			  #{pay_rest_price}
+			  <if test="pay_nobank_user != null and !pay_nobank_user.equals('')">
+			  , #{pay_nobank_price}, 
+			  #{pay_nobank_user}, 
+			  #{pay_nobank} 
+			  </if>
+			)  
+			  
+	</insert>
+	
+	<!-- 주문완료 내역 정보 -->
+	<select id="orderComplete" parameterType="string" resultType="com.forpet.domain.OrderPaymentInfo">
+	
+		SELECT
+			O.ODR_NUMBER, O.ODR_NAME, O.ODR_PHONE, O.ODR_POSTCODE, O.ODR_ADDR, O.ODR_ADDR_D, O.ODR_MESSAGE,
+			P.PAY_TOTAL_PRICE, P.PAY_METHOD, P.PAY_NOBANK_PRICE, P.PAY_NOBANK_USER, P.PAY_NOBANK 
+		FROM
+			ORDER_TBL O INNER JOIN PAYMENT_TBL P
+		ON
+			O.ODR_NUMBER = P.ODR_NUMBER
+		WHERE
+			MEM_ID = #{mem_id} AND ODR_DATE >= SYSDATE
+			
+			
+	</select>
+	
+	<!-- 날짜조건 검색 -->
+	<sql id="period">
+	  <if test="startDate != null and !startDate.equals('') and endDate != null and !endDate.equals('')">
+		
+		<![CDATA[
+		ODR_DATE >= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		
+		AND 
+	
+		ODR_DATE < TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+		
+		AND 
+		]]>
+		
+	  </if>
+	</sql>
+
+	<!-- 1) 주문내역 조회 -->
+	<select id="getOrderProductInfo" resultType="map">
+	
+		<![CDATA[
+		SELECT 
+			ODR_NUMBER, ODR_DATE, ODR_STATUS, PAY_STATUS, 
+			PDT_IMG_FOLDER, PDT_IMG, PDT_NAME, PDT_PRICE, 
+			ODR_AMOUNT, ODR_PRICE 
+		FROM 
+		   (
+			SELECT ROWNUM RN, O.ODR_NUMBER, O.ODR_DATE, O.ODR_STATUS, O.PAY_STATUS,
+				   P.PDT_IMG_FOLDER, P.PDT_IMG, P.PDT_NAME, P.PDT_PRICE, 
+				   OD.ODR_AMOUNT, OD.ODR_PRICE 
+			FROM 
+				ORDER_TBL O INNER JOIN ORDER_DETAIL_TBL OD
+			ON 
+				O.ODR_NUMBER = OD.ODR_NUMBER
+				INNER JOIN PRODUCT_TBL P
+			ON 
+				OD.PDT_NUMBER = P.PDT_NUMBER 
+		WHERE 
+			O.MEM_ID = #{mem_id} AND
+		]]>
+		   
+		<include refid="period"></include>	
+
+		<![CDATA[		   
+		         ROWNUM <= #{cri.pageNum} * #{cri.amount} 
+		         ORDER BY O.ODR_NUMBER DESC
+		)
+		WHERE 
+			RN > (#{cri.pageNum}-1) * #{cri.amount} 
+		]]>
+		
+	</select>
+
+
+	<!-- 2) 주문 데이터 개수 : 페이징구현사용 -->
+	<select id="getTotalCount" resultType="int">
+	
+		SELECT 
+			COUNT(*) 
+		FROM 
+			ORDER_TBL O INNER JOIN ORDER_DETAIL_TBL OD
+			ON 
+				O.ODR_NUMBER = OD.ODR_NUMBER
+				INNER JOIN PRODUCT_TBL P
+			ON 
+				OD.PDT_NUMBER = P.PDT_NUMBER 
+		WHERE 
+			O.MEM_ID = #{mem_id} AND 
+			<include refid="period"></include>
+			O.ODR_NUMBER > 0 
+		
+	</select>
+	
+</mapper>

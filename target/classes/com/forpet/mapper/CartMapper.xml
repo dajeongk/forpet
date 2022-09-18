@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forpet.mapper.CartMapper">
+	
+	<!-- 장바구니에 상품 추가 -->
+	<insert id="cart_add" parameterType="com.forpet.domain.CartVO">
+	
+		MERGE
+			INTO CART_TBL
+		USING
+			DUAL
+		ON
+			( MEM_ID = #{mem_id} AND PDT_NUMBER = #{pdt_number} )
+		WHEN MATCHED THEN
+			UPDATE SET PDT_BUY_AMOUNT = PDT_BUY_AMOUNT + #{pdt_buy_amount}
+		WHEN NOT MATCHED THEN
+			 INSERT ( CRT_CODE, PDT_NUMBER, MEM_ID, PDT_BUY_AMOUNT )
+		     VALUES ( SEQ_CRT_CODE.NEXTVAL, #{pdt_number}, #{mem_id}, #{pdt_buy_amount} )
+	
+	</insert>
+
+	<!-- 장바구니 목록 -->
+	<select id="cart_list" parameterType="string" resultType="com.forpet.domain.CartVOList">
+		
+		SELECT 
+			C.CRT_CODE, C.PDT_NUMBER, C.MEM_ID, C.PDT_BUY_AMOUNT, P.PDT_IMG_FOLDER, P.PDT_IMG, P.PDT_NAME, P.PDT_PRICE, M.MEM_POINT
+		FROM 
+			CART_TBL C INNER JOIN PRODUCT_TBL P ON C.PDT_NUMBER = P.PDT_NUMBER 
+			INNER JOIN MEMBER_TBL M ON C.MEM_ID = M.MEM_ID
+		WHERE 
+			C.MEM_ID = #{mem_id}
+	
+	</select>
+
+	<!-- 장바구니 상품 수량 변경  -->
+	<update id="cart_amount_update" >
+		
+		UPDATE  
+			CART_TBL
+		SET 
+			PDT_BUY_AMOUNT = #{pdt_buy_amount}
+		WHERE 
+			CRT_CODE = #{crt_code}
+	
+	</update>
+	
+	<!-- 장바구니 상품 삭제 -->
+	<delete id="cart_delete" parameterType="long">
+	
+		DELETE FROM
+			CART_TBL
+		WHERE
+			CRT_CODE = #{crt_code}
+	
+	</delete>
+	
+	<!-- 장바구니 비우기 -->
+	<delete id="cart_empty" parameterType="string">
+	
+		DELETE FROM 
+			CART_TBL
+		WHERE
+			MEM_ID = #{mem_id} 
+			
+	</delete>
+	
+	
+</mapper>

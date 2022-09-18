@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forpet.mapper.MemberMapper">
+	
+	<!-- 회원가입 : 회원정보 저장 -->
+	<insert id="join" parameterType="com.forpet.domain.MemberVO">
+	
+		INSERT INTO MEMBER_TBL
+			( 
+			  MEM_ID, 
+			  MEM_PW, 
+			  MEM_NAME, 
+			  MEM_PHONE, 
+  		      MEM_EMAIL, 
+  		      MEM_POSTCODE, 
+  		      MEM_ADDR, 
+  		      MEM_ADDR_D 
+  		    )
+        VALUES 
+        	( 
+        	  #{mem_id}, 
+        	  #{mem_pw}, 
+        	  #{mem_name}, 
+        	  #{mem_phone},
+              #{mem_email}, 
+              #{mem_postcode}, 
+              #{mem_addr}, 
+              #{mem_addr_d} 
+            )
+          
+	</insert>
+
+	<!-- 회원가입 - ID 중복체크 -->
+	<select id="idCheck" parameterType="String" resultType="String">	
+		SELECT 
+			MEM_ID 
+		FROM 
+			MEMBER_TBL 
+		WHERE 
+			MEM_ID = #{mem_id}
+	</select>
+
+	<!-- 로그인 -->
+	<select id="login_ok" parameterType="com.forpet.dto.LoginDTO" resultType="com.forpet.domain.MemberVO">
+
+		SELECT 
+			MEM_ID, 
+			MEM_PW, 
+			MEM_NAME, 
+			MEM_PHONE, 
+  		    MEM_EMAIL, 
+  		    MEM_POSTCODE, 
+  		    MEM_ADDR, 
+  		    MEM_ADDR_D
+		FROM 
+			MEMBER_TBL
+		WHERE 
+			MEM_ID = #{mem_id}
+	
+	</select>
+	
+	<!-- 아이디 찾기 -->
+	<select id="findID" resultType="string">
+	
+		SELECT 
+			MEM_ID
+		FROM 
+			MEMBER_TBL
+		WHERE 
+			MEM_NAME = #{mem_name} AND MEM_EMAIL = #{mem_email}
+	
+	</select>
+	
+	<!-- 비밀번호 찾기(임시비밀번호발급) -->
+	<select id="findPW" resultType="string">
+	
+		SELECT 
+			MEM_ID
+		FROM 
+			MEMBER_TBL
+		WHERE 
+			MEM_ID = #{mem_id} AND MEM_EMAIL = #{mem_email}
+	
+	</select>
+	
+	<!-- 임시비밀번호를 암호화하여 변경 -->
+	<update id="changePW" parameterType="string">
+	
+		UPDATE
+			MEMBER_TBL
+		SET
+			MEM_PW = #{mem_pw}
+		WHERE 
+			MEM_ID = #{mem_id}
+	
+	</update>
+	
+	<!-- 회원정보 수정 -->
+	<update id="modify" parameterType="com.forpet.domain.MemberVO">
+	
+		UPDATE
+			MEMBER_TBL
+		SET
+			<if test="mem_pw != null and !mem_pw.equals('')">
+			MEM_PW = #{mem_pw},
+			</if>
+			
+			MEM_PHONE = #{mem_phone},
+			MEM_EMAIL = #{mem_email},
+			MEM_POSTCODE = #{mem_postcode},
+			MEM_ADDR = #{mem_addr},
+			MEM_ADDR_D = #{mem_addr_d}
+		WHERE 
+			MEM_ID = #{mem_id}	
+	
+	</update>
+	
+</mapper>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forpet.mapper.ReviewMapper">
+
+	<!-- 상품후기 작성 -->
+	<insert id="create" parameterType="com.forpet.domain.ReviewVO">
+	
+		INSERT INTO REVIEW_TBL
+			(
+			  RVW_NUMBER, 
+			  MEM_ID, 
+			  PDT_NUMBER, 
+			  RVW_CONTENT, 
+			  RVW_SCORE
+			)
+		VALUES
+			(
+			  SEQ_RVW_NUMBER.NEXTVAL, 
+			  #{mem_id}, 
+			  #{pdt_number}, 
+			  #{rvw_content}, 
+			  #{rvw_score}
+			)
+	
+	</insert>
+
+	<!-- 상품후기 목록 -->
+	<select id="list" resultType="com.forpet.domain.ReviewVO">
+		
+		<!-- 인덱스힌트를 이용한 페이징쿼리(검색x) -->
+		<![CDATA[
+		SELECT RN, RVW_NUMBER, MEM_ID, PDT_NUMBER, RVW_CONTENT, RVW_SCORE, RVW_DATE
+		FROM 
+			(
+		      SELECT  /*+ INDEX_DESC(REVIEW_TBL PK_RVW_NUMBER)*/ ROWNUM RN, RVW_NUMBER, MEM_ID, PDT_NUMBER, RVW_CONTENT, RVW_SCORE, RVW_DATE
+		      FROM REVIEW_TBL
+		      WHERE PDT_NUMBER = #{pdt_number} AND ROWNUM <= #{cri.pageNum} * #{cri.amount}
+			)
+		WHERE 
+			RN > (#{cri.pageNum}-1) * #{cri.amount}
+		]]>
+		
+	</select>
+
+	<!-- 상품후기 전체 개수 -->
+	<select id="listCount" parameterType="int" resultType="int">
+		
+		SELECT 
+			COUNT(*) 
+		FROM 
+			REVIEW_TBL 
+		WHERE 
+			PDT_NUMBER = #{pdt_number}
+			
+	</select>
+	
+	<!-- 상품후기 수정 -->
+	<update id="modify" parameterType="com.forpet.domain.ReviewVO">
+	
+		UPDATE 
+			REVIEW_TBL
+		SET
+			RVW_CONTENT = #{rvw_content}, RVW_SCORE = #{rvw_score}, RVW_DATE = SYSDATE
+		WHERE 
+			RVW_NUMBER = #{rvw_number}
+	
+	</update>
+	
+	<!-- 상품후기 삭제 -->
+	<delete id="delete" parameterType="int">
+	
+		DELETE FROM
+			REVIEW_TBL
+		WHERE
+			RVW_NUMBER = #{rvw_number}
+
+	</delete>
+
+	<!-- 상품번호에 해당하는 상품후기 -->
+	<select id="read" parameterType="int" resultType="com.forpet.domain.ReviewVO">
+	
+		SELECT
+			RVW_NUMBER, MEM_ID, PDT_NUMBER, RVW_CONTENT, RVW_SCORE, RVW_DATE
+		FROM 
+			REVIEW_TBL
+		WHERE 
+			RVW_NUMBER = #{rvw_number}			
+	
+	</select>
+
+	<!-- 상품후기 개수 업데이트 -->
+	<update id="reviewCountUpdate">
+	
+		UPDATE 
+			PRODUCT_TBL 
+		SET
+			RVW_CNT = RVW_CNT + #{amount}
+		WHERE 
+			PDT_NUMBER = #{pdt_number}
+		
+	</update>
+	
+	<!-- 상품에 해당하는 리뷰 개수 -->
+	<select id="reviewCountByProduct" parameterType="int" resultType="int">
+	
+		SELECT 
+			RVW_CNT
+		FROM 
+			PRODUCT_TBL
+		WHERE 
+			PDT_NUMBER = #{pdt_number}
+		
+	</select>
+	
+</mapper>

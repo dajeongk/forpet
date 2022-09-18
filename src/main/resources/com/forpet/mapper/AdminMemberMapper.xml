@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forpet.mapper.AdminMemberMapper">
+
+	<!-- 검색조건 쿼리 -->
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+			<foreach collection="typeArr" item="type">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'N'.toString()">
+							MEM_NAME like '%' || #{keyword} || '%'
+						</when>
+						<when test="type == 'I'.toString()">
+							MEM_ID like '%' || #{keyword} || '%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+	
+	<!-- 1) 회원 목록 -->
+	<select id="getListWithPaging" parameterType="com.forpet.dto.Criteria" resultType="com.forpet.domain.MemberVO">
+		
+		<![CDATA[
+		SELECT RN, MEM_NAME, MEM_ID, MEM_PHONE, MEM_EMAIL, MEM_ADDR, MEM_ADDR_D, MEM_POINT, MEM_SIGN_DATE
+		FROM (
+		    SELECT ROWNUM RN, MEM_NAME, MEM_ID, MEM_PHONE, MEM_EMAIL, MEM_ADDR, MEM_ADDR_D, MEM_POINT, MEM_SIGN_DATE 
+		    FROM MEMBER_TBL
+		    WHERE  
+		]]>    
+		 <include refid="criteria"></include> 
+		 
+		<![CDATA[ 
+		   
+		         ROWNUM <= #{pageNum} * #{amount}
+		         ORDER BY MEM_SIGN_DATE DESC
+		)
+		WHERE 
+			RN > (#{pageNum}-1) * #{amount}
+			
+		]]>
+		
+	</select>
+    
+	<!-- 2) 회원 데이터 개수  -->
+	<select id="getTotalCount" parameterType="com.forpet.dto.Criteria" resultType="int">
+	
+		SELECT COUNT(*) FROM MEMBER_TBL WHERE
+		
+		<include refid="criteria"></include> 
+		
+		ROWNUM > 0
+		
+	</select>
+	
+	<!-- 회원 상세정보 -->
+	<select id="memberDetail" parameterType="string" resultType="com.forpet.domain.MemberVO">
+	
+		SELECT
+			MEM_ID, 
+			MEM_NAME, 
+			MEM_PHONE, 
+			MEM_EMAIL,
+			MEM_AUTHCODE,
+			MEM_POSTCODE, 
+			MEM_ADDR, 
+			MEM_ADDR_D, 
+			MEM_POINT, 
+			MEM_SIGN_DATE
+		FROM
+			MEMBER_TBL
+		WHERE
+			MEM_ID = #{mem_id}
+	
+	</select>
+	
+	<!-- 회원 삭제 -->
+	<delete id="memberDelete" parameterType="string">
+		
+		DELETE FROM
+			MEMBER_TBL
+		WHERE 
+			MEM_ID = #{mem_id}
+	
+	</delete>
+
+</mapper>

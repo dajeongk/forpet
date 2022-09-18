@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forpet.mapper.BoardMapper">
+	
+	<!-- 문의게시판 글작성 -->
+	<insert id="InsertSelectKey" parameterType="com.forpet.domain.BoardVO">
+		
+		<selectKey keyProperty="brd_number" order="BEFORE" resultType="long">
+			SELECT SEQ_BRD_NUMBER.NEXTVAL FROM DUAL	
+		</selectKey>
+		
+		INSERT INTO BOARD_TBL
+			(BRD_NUMBER, MEM_ID, BRD_TITLE, BRD_CONTENT, BRD_DATE)
+		VALUES
+			(#{brd_number}, #{mem_id}, #{brd_title}, #{brd_content}, SYSDATE)
+	
+	</insert>
+		
+	<!-- 문의게시판 글목록  -->
+	<select id="getBoardList" resultType="com.forpet.domain.BoardVO">
+		
+		SELECT 
+			BRD_NUMBER, BRD_TITLE, MEM_ID, BRD_DATE 
+		FROM 
+			BOARD_TBL 
+		ORDER BY 
+			BRD_NUMBER DESC
+		
+	</select>
+
+	<!-- 검색조건 쿼리 -->
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+			<foreach collection="typeArr" item="type">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'T'.toString()">
+							BRD_TITLE like '%' || #{keyword} || '%'
+						</when>
+						<when test="type == 'C'.toString()">
+							BRD_CONTENT like '%' || #{keyword} || '%'
+						</when>
+						<when test="type == 'W'.toString()">
+							MEM_ID like '%' || #{keyword} || '%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+	
+	<!-- 1) 문의게시판 목록 -->
+	<select id="getListWithPaging" parameterType="com.forpet.dto.Criteria" resultType="com.forpet.domain.BoardVO">
+		
+		<![CDATA[
+		SELECT RN, BRD_NUMBER, BRD_TITLE, BRD_CONTENT, MEM_ID, BRD_DATE
+		FROM (
+		    SELECT  /*+ INDEX_DESC(BOARD_TBL PK_BRD_NUMBER)*/ ROWNUM RN, BRD_NUMBER, BRD_TITLE, BRD_CONTENT, MEM_ID, BRD_DATE FROM BOARD_TBL
+		    WHERE  
+		]]>    
+		 <include refid="criteria"></include> 
+		 
+		<![CDATA[ 
+		   
+		         ROWNUM <= #{pageNum} * #{amount}
+		)
+		WHERE 
+			RN > (#{pageNum}-1) * #{amount}
+		]]>
+		
+	</select>
+    
+	<!-- 2) 문의게시판 데이터 개수  -->
+	<select id="getTotalCount" parameterType="com.forpet.dto.Criteria" resultType="int">
+	
+		SELECT COUNT(*) FROM BOARD_TBL WHERE
+		
+		<include refid="criteria"></include> 
+		
+		BRD_NUMBER > 0
+		
+	</select>
+
+	<!-- 문의게시판 글읽기 -->
+	<select id="boardGet" parameterType="long" resultType="com.forpet.domain.BoardVO">
+	
+		SELECT 
+			BRD_NUMBER, MEM_ID, BRD_TITLE, BRD_CONTENT, BRD_DATE
+		FROM 
+			BOARD_TBL
+		WHERE
+			BRD_NUMBER = #{brd_number}
+	
+	</select>
+	
+	<!-- 문의게시판 글수정 -->
+	<update id="boardModify" parameterType="com.forpet.domain.BoardVO">
+	
+		UPDATE
+			BOARD_TBL
+		SET
+			BRD_TITLE = #{brd_title}, BRD_CONTENT = #{brd_content}
+		WHERE
+			BRD_NUMBER = #{brd_number}
+	
+	</update>
+	
+	<!-- 문의게시판 글삭제 -->
+	<delete id="boardDelete" parameterType="long"> 
+		
+		DELETE FROM 
+			BOARD_TBL
+		WHERE 
+			BRD_NUMBER = #{brd_number}
+			
+    </delete>
+    
+</mapper>

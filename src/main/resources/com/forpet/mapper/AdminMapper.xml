@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forpet.mapper.AdminMapper">
+
+	<!-- 관리자 로그인  -->
+	<select id="admLogin_ok" parameterType="com.forpet.domain.AdminVO" resultType="com.forpet.domain.AdminVO">
+	
+		SELECT 
+			ADM_ID, ADM_PW, ADM_NAME, ADM_LOGIN_DATE
+		FROM 
+			ADMIN_TBL
+		WHERE 
+			ADM_ID = #{adm_id}
+	
+	</select>
+
+</mapper>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forpet.mapper.SearchMapper">
+
+	<!-- 검색조건 쿼리 -->
+	<sql id="criteria">
+		<if test="keyword != null and !keyword.equals('')">
+			PDT_NAME like '%' || #{keyword} || '%' and
+		</if>
+	</sql>
+	
+	<!-- 1) 검색 상품 목록 : 페이징쿼리(인덱스힌트 구문) -->
+	<select id="getSearchProductList" parameterType="com.forpet.dto.Criteria" resultType="com.forpet.domain.ProductVO">
+		
+		<![CDATA[
+		SELECT 
+			RN, PDT_NUMBER, CTG_CODE, CTG_CODE_PRT, PDT_NAME, PDT_PRICE, PDT_DISCOUNT, PDT_COMPANY, PDT_IMG_FOLDER, PDT_IMG, PDT_DETAIL, PDT_BUY_AMOUNT, PDT_BUY_ACCEPT, PDT_SIGN_DATE, PDT_UPDATE_DATE, RVW_CNT
+		FROM 
+			(
+			  SELECT  /*+ INDEX_DESC(PRODUCT_TBL PK_PDT_NUMBER)*/ ROWNUM RN, PDT_NUMBER, CTG_CODE, CTG_CODE_PRT, PDT_NAME, PDT_PRICE, PDT_DISCOUNT, PDT_COMPANY, PDT_IMG_FOLDER, PDT_IMG, PDT_DETAIL, PDT_BUY_AMOUNT, PDT_BUY_ACCEPT, PDT_SIGN_DATE, PDT_UPDATE_DATE, RVW_CNT 
+			  FROM PRODUCT_TBL
+			  WHERE
+		]]>    
+		 <include refid="criteria"></include> 
+		 
+		<![CDATA[ 
+		   
+		         ROWNUM <= #{pageNum} * #{amount}
+		)
+		WHERE 
+			RN > (#{pageNum}-1) * #{amount}
+		]]>
+		
+	</select>
+	
+	<!-- 2) 검색 상품 데이터 개수 (페이징구현사용) -->
+	<select id="getSearchProductCount" parameterType="com.forpet.dto.Criteria" resultType="int">
+		
+		SELECT COUNT(*) FROM PRODUCT_TBL WHERE 
+		
+		<include refid="criteria"></include> 
+		
+		PDT_NUMBER > 0
+		
+	</select>
+
+
+</mapper>
